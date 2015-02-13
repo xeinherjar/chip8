@@ -9,6 +9,10 @@ var romLoader = new XMLHttpRequest();
 romLoader.onload = function(e) {
   romBuffer = romLoader.response;
   rom = new Uint8Array(romBuffer);
+
+  chip8.init();
+  chip8.loadGame();
+  console.log("ready");
 };
 romLoader.open('GET', 'roms/Breakout.ch8', true);
 romLoader.responseType = 'arraybuffer';
@@ -80,7 +84,7 @@ chip8.init = function() {
   chip8.pc = 0x200;
   // Stack back at 0
   chip8.sp = 0;
-  // Setset current opcode
+  // Reset current opcode
   chip8.opcode = 0;
 
   // According to JSPerf, setting items to 0 is fater than recreating new buffer.
@@ -109,9 +113,36 @@ chip8.loadGame = function() {
 
 // Cycle: Fetch, Decode, Execute, Update (draw, timers)
 chip8.opcode = 0;
+// opcode high bit
+chip8.opH = 0;
+// opcode low bit
+chip8.opL = 0;
 chip8.opCycle = function() {
-// Opcodes are two bytes, shift left 8 bits, OR in next byte.
-  chip8.opcode = chip8.rom[chip8.pc] << 8 | chip8.rom[chip8.pc + 1]; 
+  // Fetch
+  // Opcodes are two bytes, shift left 8 bits, OR in next byte.
+  chip8.opcode = chip8.ram[chip8.pc] << 8 | chip8.ram[chip8.pc + 1]; 
+  // Decode
+  // Take first four bits by masking.
+  chip8.opH = chip8.opcode & 0xF000;
+  // Take the last four bits by masking.
+  chip8.opL = chip8.opcode & 0x000F;
+
+  // Execute
+  // JSPerf says swtich is faster than a jump table...
+  switch(chip8.opH) {
+    case 0xA000: // ANNN
+      // Sets I to the address NNN.
+      chip8.I = chip8.opcode & 0x0FFF;
+      chip8.pc += 2;      
+      break;
+    case 0x6000: // 6XNN
+      // Sets VX to NN
+      chip8.v[chip8.opcode & 0x0F00] = chip8.opcode & 0x00FF;
+      chip8.pc += 2;
+      break;
+    default:
+      console.log("Unknown op: ", chip8.opcode.toString(16));
+  }
 };
 
 
@@ -133,3 +164,5 @@ chip8.opCycle = function() {
   window.chip8 = chip8;
 
 }());
+
+
