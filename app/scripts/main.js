@@ -35,7 +35,7 @@ var vBuffer  = new ArrayBuffer(0xF);
 var ramBuffer   = new ArrayBuffer(4096);
     chip8.ram   = new Uint8Array(ramBuffer);
     // Stack, homebrew games can expect up to 16 levels (2 bytes per level).
-    stackBuffer = new ArrayBuffer(32); 
+    stackBuffer = new ArrayBuffer(32);
     chip8.stack = new Uint16Array(stackBuffer);
     chip8.sp    = 0;
 
@@ -51,9 +51,80 @@ var gfxBuffer = new ArrayBuffer(2048);
 var kpBuffer = new ArrayBuffer(0xF);
     chip8.kp = new Uint8Array(kpBuffer);
 
+// Font Set
+var fontSet = [ 
+  0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
+  0x20, 0x60, 0x20, 0x20, 0x70, // 1
+  0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
+  0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
+  0x90, 0x90, 0xF0, 0x10, 0x10, // 4
+  0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
+  0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
+  0xF0, 0x10, 0x20, 0x40, 0x40, // 7
+  0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
+  0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
+  0xF0, 0x90, 0xF0, 0x90, 0x90, // A
+  0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
+  0xF0, 0x80, 0x80, 0x80, 0xF0, // C
+  0xE0, 0x90, 0x90, 0x90, 0xE0, // D
+  0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
+  0xF0, 0x80, 0xF0, 0x80, 0x80  // F
+];
 
-// Cycle: Fetch, Decode, Execute
-// Opcodes are two bytes
+
+chip8.init = function() {
+  // Reset | Set inital state of machine.
+  // Index starts at 0
+  chip8.I = 0;
+  // Program Counters starts at 0x200, first op instruciton location.
+  chip8.pc = 0x200;
+  // Stack back at 0
+  chip8.sp = 0;
+  // Setset current opcode
+  chip8.opcode = 0;
+
+  // According to JSPerf, setting items to 0 is fater than recreating new buffer.
+  // Clear stack
+  for (var i = 0; i < chip8.stack.length; i++) { chip8.stack[i] = 0; }
+  // Clear memory
+  for (var i = 0; i < chip8.ram.length; i++) { chip8.ram[i] = 0; }
+  // Clear registers
+  for (var i = 0; i < chip8.v.length; i++) { chip8.v[i] = 0; }
+  // Clear display
+  for (var i = 0; i < chip8.gfx.length; i++) { chip8.gfx[i] = 0; }
+
+};
+
+chip8.loadGame = function() {
+  // Font Set should live at 0x50 (80)
+  for (var i = 0; i < fontSet.length; i++) {
+    chip8.ram[0x50 + i] = fontSet[i];
+  }
+  // Rom should live at 0x200 (512)
+  for (var i = 0; i < rom.length; i++) {
+    chip8.ram[0x200 + i] = rom[i];
+  }
+};
+
+
+// Cycle: Fetch, Decode, Execute, Update (draw, timers)
+chip8.opcode = 0;
+chip8.opCycle = function() {
+// Opcodes are two bytes, shift left 8 bits, OR in next byte.
+  chip8.opcode = chip8.rom[chip8.pc] << 8 | chip8.rom[chip8.pc + 1]; 
+};
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
