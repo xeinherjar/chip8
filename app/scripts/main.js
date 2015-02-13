@@ -131,7 +131,12 @@ chip8.opCycle = function() {
   // Execute
   // JSPerf says swtich is faster than a jump table...
   switch(chip8.opH) {
-     case 0x6000: // 6XNN
+    case 0x7000: // 7XNN
+      // Adds NN to VX
+      chip8.v[chip8.opcode & 0x0F00] = chip8.opcode & 0x00FF;
+      chip8.pc += 2;
+      break;
+    case 0x6000: // 6XNN
       // Sets VX to NN
       chip8.v[chip8.opcode & 0x0F00] = chip8.opcode & 0x00FF;
       chip8.pc += 2;
@@ -159,11 +164,11 @@ chip8.opCycle = function() {
           xi,
           p;
       for (yi = 0; yi < n; yi++) {
-        pixel = chip8.ram[I + yi];
+        pixel = chip8.ram[chip8.I + yi];
         // convert to pixel data, we need 8 bits but JavaScript will only print what is needed.
         pixel = ("00000000" + pixel.toString(2)).substr(-8);
         for (xi = 0; xi < pixel.length; xi++) {
-          p = pixel[i] === "1" ? 1 : 0;
+          p = pixel[xi] === "1" ? 1 : 0;
           // Where to draw the pixel.
           loc = ((y + yi) * 64) + x + xi; 
 
@@ -188,11 +193,30 @@ chip8.opCycle = function() {
 
 
 
+  // Resolution 64x32 (2048 pixels) will display at: 320x160
+  var ctx = document.getElementById('screen').getContext('2d');
+  chip8.render = function() {
+    var w  = 320,
+        y  = 160,
+        xp = 32,
+        yp = 64;
+
+    ctx.clearRect(0, 0, 320, 160);
+
+    for (var i = 0; i < 2048; i++) {
+      var x = i % 64,
+          y = (i / 64) << 0;
+      if (chip8.gfx[i] === 1) { ctx.fillRect(x + 5, y + 5, 5, 5); }
+    };
+
+    drawFlag = false;
+  }
 
 
-
-
-
+  chip8.loop = function() {
+    chip8.opCycle(); 
+    if (drawFlag === true) { chip8.render(); }
+  };
 
 
 
