@@ -216,6 +216,11 @@ chip8.opCycle = function() {
           console.log("Unknown op: ", chip8.opcode.toString(16));
       }
       break;
+    case 0x9000: // 9XY0
+      // Skips the next instruction if VX doesn't equal VY
+      if (chip8.v[x] !== chip8.v[y]) { chip8.pc +2; }
+      chip8.pc += 2;
+      break;
     case 0xA000: // ANNN
       // Sets I to the address NNN.
       chip8.I = nnn;
