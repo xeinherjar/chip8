@@ -261,9 +261,14 @@ chip8.opCycle = function() {
       chip8.pc += 2;
       break;
    case 0xE000:
-      switch(chip8.opcode & 0x000F) {
-        case 0x0001:
-          // Skips the next instruction if the key stored in VX isn't pressed.
+      switch(chip8.opcode & 0x00FF) {
+        case 0x009E: // EX9E
+          // Skips the next instruction if the key stored in VX is pressed
+          if (chip8.keydown === chip8.v[x]) { chip8.pc += 2; }
+          chip8.pc += 2;
+          break;
+        case 0x00A1: // EXA1
+          // Skips the next instruction if the key stored in VX isn't pressed
           if (chip8.keydown !== chip8.v[x]) { chip8.pc += 2; }
           chip8.pc += 2;
           break;
