@@ -207,9 +207,59 @@ chip8.opCycle = function() {
           chip8.v[x] = chip8.v[y];
           chip8.pc += 2;
           break;
+        case 0x0001: // 8XY1
+          // Sets VX to VX or VY
+          chip8.v[x] |= chip8.v[y];
+          chip8.pc += 2;
+          break;
         case 0x0002: // 8XY2
           // Sets VX to VX and VY
           chip8.v[x] &= chip8.v[y];
+          chip8.pc += 2;
+          break;
+        case 0x0003: // 8XY3
+          // Sets VX to VX xor VY
+          chip8.v[x] ^= chip8.v[y];
+          chip8.pc += 2;
+          break; 
+        case 0x0004: // 8XY4
+          // Adds VY to VX 
+          // VF is set to 1 when there's a carry, and to 0 when there isn't
+          var tmp = chip8.v[x] + chip8.v[y];
+          // If more than 255 then carry
+          chip8.v[0xF] = tmp > 255 ? 1 : 0;
+          // bitwise and to clamp value between 0 - 255
+          chip8.v[x] = tmp & 0xFF;
+          chip8.pc += 2;
+          break;
+        case 0x0005: // 8XY5
+          // VY is subtracted from VX
+          // VF is set to 0 when there's a borrow, and 1 when there isn't
+          chip8.v[0xF] = chip8.v[x] > chip8.v[y] ? 1 : 0; 
+          chip8.v[x] -= chip8.v[y];
+          chip8.pc += 2;
+          break;
+        case 0x0006: // 8XY6
+          // Shifts VX right by one
+          // VF is set to the value of the least significant bit of VX before the shift
+          chip8.v[0xF] = chip8.v[x] & 1;
+          // Right shift by 1 is the same as divide by 2
+          chip8.v[x] >>= 1;
+          chip8.pc += 2;
+          break;
+        case 0x0007: // 8XY7
+          // Sets VX to VY minus VX
+          // VF is set to 0 when there's a borrow, and 1 when there isn't
+          chip8.v[0xF] = chip8.v[y] > chip8.v[x] ? 1 : 0;
+          chip8.v[x] = chip8.v[y] - chip8.v[x];
+          chip8.pc += 2;
+          break;
+        case 0x0008: // 8XYE
+          // Shifts VX left by one
+          // VF is set to the value of the most significant bit of VX before the shift
+          chip8.v[0xF] = chip8.v[x] >> 7;
+          //Left shift is same as multiple by 2
+          chip8.v[x] = (chip8.v[x] << 1) & 0xFF;
           chip8.pc += 2;
           break;
         default:
@@ -218,7 +268,7 @@ chip8.opCycle = function() {
       break;
     case 0x9000: // 9XY0
       // Skips the next instruction if VX doesn't equal VY
-      if (chip8.v[x] !== chip8.v[y]) { chip8.pc +2; }
+      if (chip8.v[x] !== chip8.v[y]) { chip8.pc += 2; }
       chip8.pc += 2;
       break;
     case 0xA000: // ANNN
