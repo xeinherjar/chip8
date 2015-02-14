@@ -190,6 +190,11 @@ chip8.opCycle = function() {
       if (chip8.v[x] !== nn) { chip8.pc += 2; }
       chip8.pc += 2;
       break;
+   case 0x5000: // 5XY0
+      // Skips the next instruction if VX equals VY
+      if (chip8.v[x] === chip8.v[y]) { chip8.pc += 2; }
+      chip8.pc += 2;
+      break;
    case 0x6000: // 6XNN
       // Sets VX to NN
       chip8.v[x] = nn;
