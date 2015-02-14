@@ -221,6 +221,10 @@ chip8.opCycle = function() {
       chip8.I = nnn;
       chip8.pc += 2;
       break;
+    case 0xB000: // BNNN
+      // Jumps to the address NNN plus V0
+      chip8.pc = nnn + chip8.v[0];
+      break;
     case 0xC000: // CXNN
       // Sets VX to a random number, masked by NN
       // Can be any number 0 - 255
