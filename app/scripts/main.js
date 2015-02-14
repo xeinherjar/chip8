@@ -160,12 +160,19 @@ chip8.opCycle = function() {
   switch(chip8.opH) {
     case 0x0000:
       switch(chip8.opcode & 0x00FF) {
+        case 0x00E0: // 00E0
+          // Clears the screen
+          for (var i = 0; i < chip8.gfx.length; i++) {
+            chip8.gfx[i] = 0;
+          }
+          drawFlag = true;
+          chip8.pc += 2;
+          break;
         case 0x00EE: // 00EE
           // Returns from a subroutine
           chip8.sp -= 1;
           chip8.pc = chip8.stack[chip8.sp];
           break;
-
         default:
           console.log("Unknown op: ", chip8.opcode.toString(16));
       }
