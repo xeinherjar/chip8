@@ -100,7 +100,7 @@ chip8.init = function() {
   for (i = 0; i < chip8.v.length; i++) { chip8.v[i] = 0; }
   // Clear display
   for (i = 0; i < chip8.gfx.length; i++) { chip8.gfx[i] = 0; }
-  
+
   document.getElementById('chip').addEventListener('keydown', function(e) { chip8.keydown = keys[e.which]; });
   document.getElementById('chip').addEventListener('keyup', function() { chip8.keydown = 99; });
 
@@ -108,8 +108,8 @@ chip8.init = function() {
 
 // Hex Keypad, 0x0-0xF
 // 1,2,3,4   1,2,3,c
-// q,w,e,r   4,5,6,d 
-// a,s,d,f   7,8,9,e 
+// q,w,e,r   4,5,6,d
+// a,s,d,f   7,8,9,e
 // z,x,c,v   a,0,b,f
 var keys = {
   49: 0x1, 50: 0x2, 51: 0x3, 52: 0xC,
@@ -273,17 +273,61 @@ chip8.opCycle = function() {
       break;
    case 0xF000:
       switch(chip8.opcode & 0x00FF) {
+        case 0x0007: // FX07
+          // Sets VX to the value of the delay timer
+          chip8.v[x] = chip8.delayTimer;
+          chip8.pc += 2;
+          break;
         case 0x000A: // FX0A
           // A key press is awaited, and then stored in VX
           if (chip8.keydown !== undefined && chip8.keydown !== 99) {
-            console.log("********************************", chip8.keydown);
             chip8.v[x] = chip8.keydown;
             chip8.pc += 2;
           }
           break;
+        case 0x0015: // FX15
+          // Sets the delay timer to VX
+          chip8.delayTimer = chip8.v[x];
+          chip8.pc += 2;
+          break;
+        case 0x0018: // FX18
+          // Sets the sound timer to VX
+          chip8.soundTimer = chip8.v[x];
+          chip8.pc += 2;
+          break;
         case 0x001E: // FX1E
-          // Adds VX to I  
-          chip8.I += chip8.v[x]; 
+          // Adds VX to I
+          chip8.I += chip8.v[x];
+          chip8.pc += 2;
+          break;
+        case 0x0029: // FX29
+          // Sets I to the location of the sprite for the character in VX.
+          // Characters 0-F (in hexadecimal) are represented by a 4x5 font
+          // Fonts are stored in ram starting at 0x50.  Sinces fonts are 5 bytes long
+          // we multiply the value by 5.  0x50 + (0 * 0), 0x50 + (1 * 5)...
+          var address = 0x50 + (chip8.v[x] * 5);
+          chip8.I = chip8.ram[chip8.v[x] * 5];
+          chip8.pc += 2;
+          break;
+        case 0x0033: // FX33
+          // Stores the Binary-coded decimal representation of VX, 
+          // with the most significant of three digits at the address in I, 
+          // the middle digit at I plus 1, 
+          // and the least significant digit at I plus 2. 
+          // (In other words, take the decimal representation of VX, 
+          // place the hundreds digit in memory at location in I, 
+          // the tens digit at location I+1, and the ones digit at location I+2.)
+          var bcd = chip8.v[x];
+          chip8.ram[chip8.I    ] = (bcd / 100) % 10;
+          chip8.ram[chip8.I + 1] = (bcd / 10 ) % 10;
+          chip8.ram[chip8.I + 2] = (bcd / 1  ) % 10;
+          chip8.pc += 2;
+          break;
+        case 0x0055: // FX55
+          // Stores V0 to VX in memory starting at address I
+          for (var i = 0; i <= x; i++) {
+            chip8.ram[chip8.I + i] = chip8.v[i];
+          }
           chip8.pc += 2;
           break;
         case 0x0065: // FX65
@@ -293,7 +337,7 @@ chip8.opCycle = function() {
           }
           chip8.pc += 2;
           break;
-        default: 
+        default:
           console.log("Unknown op: ", chip8.opcode.toString(16));
       }
       break;
@@ -326,7 +370,7 @@ chip8.opCycle = function() {
 
     drawFlag = false;
   };
-  
+
 
   var animationID;
   chip8.loop = function() {
