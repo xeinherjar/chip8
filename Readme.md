@@ -7,8 +7,11 @@ Technical Resources:
 
 
 The source code is heavily commented and most of the code is written in a very straight forward manner.
+All of the code is under app/scripts/main.js
 
 You can play it on [Github's Pages](http://xeinherjar.github.io/chip8)
+
+
 Enjoy.
 
 

@@ -26,7 +26,7 @@ romLoader.send(null);
 
 // Registers v0-vF (0x0 - 0xF)
 // 16 8 bit registers.  VF doubles as carry flag.
-var vBuffer  = new ArrayBuffer(0xF);
+var vBuffer  = new ArrayBuffer(16);
     chip8.v  = new Uint8Array(vBuffer);
 // Index register 16-bits wide. (address register)
     chip8.I  = 0;
@@ -56,7 +56,7 @@ var gfxBuffer = new ArrayBuffer(2048);
 // Keypad 0x0-0xF (16)
 var kpBuffer = new ArrayBuffer(0xF);
     chip8.kp = new Uint8Array(kpBuffer);
-    chip8.keydown = 0;
+    chip8.keydown = 99;
 
 // Font Set
 var fontSet = [
@@ -101,9 +101,21 @@ chip8.init = function() {
   // Clear display
   for (i = 0; i < chip8.gfx.length; i++) { chip8.gfx[i] = 0; }
   
-  document.getElementById('chip').addEventListener('keypress', function(e) { chip8.keydown = e.which; });
-  document.getElementById('chip').addEventListener('keyup', function() { chip8.keydown = 0; });
+  document.getElementById('chip').addEventListener('keydown', function(e) { chip8.keydown = keys[e.which]; });
+  document.getElementById('chip').addEventListener('keyup', function() { chip8.keydown = 99; });
 
+};
+
+// Hex Keypad, 0x0-0xF
+// 1,2,3,4   1,2,3,c
+// q,w,e,r   4,5,6,d 
+// a,s,d,f   7,8,9,e 
+// z,x,c,v   a,0,b,f
+var keys = {
+  49: 0x1, 50: 0x2, 51: 0x3, 52: 0xC,
+  81: 0x4, 87: 0x5, 69: 0x6, 82: 0xD,
+  65: 0x7, 83: 0x8, 68: 0x9, 70: 0xE,
+  90: 0xA, 88: 0x0, 67: 0xB, 86: 0xF
 };
 
 chip8.loadGame = function() {
@@ -142,7 +154,7 @@ chip8.opCycle = function() {
       x   = (chip8.opcode & 0x0F00) >> 8,
       y   = (chip8.opcode & 0x00F0) >> 4;
 
-  console.log(chip8.opcode.toString(16));
+  //console.log(chip8.opcode.toString(16));
   // Execute
   // JSPerf says swtich is faster than a jump table...
   switch(chip8.opH) {
@@ -261,6 +273,14 @@ chip8.opCycle = function() {
       break;
    case 0xF000:
       switch(chip8.opcode & 0x00FF) {
+        case 0x000A: // FX0A
+          // A key press is awaited, and then stored in VX
+          if (chip8.keydown !== undefined && chip8.keydown !== 99) {
+            console.log("********************************", chip8.keydown);
+            chip8.v[x] = chip8.keydown;
+            chip8.pc += 2;
+          }
+          break;
         case 0x001E: // FX1E
           // Adds VX to I  
           chip8.I += chip8.v[x]; 
