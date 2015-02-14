@@ -221,9 +221,13 @@ chip8.opCycle = function() {
       chip8.I = nnn;
       chip8.pc += 2;
       break;
-    //case 0xC000: // CXNN
+    case 0xC000: // CXNN
       // Sets VX to a random number, masked by NN
-
+      // Can be any number 0 - 255
+      // Bitwise OR 0 is a faster way to do Math.floor
+      chip8.v[x] = ((Math.random() * 0xFF) | 0) & nn;
+      chip8.pc += 2;
+      break;
     case 0xD000: // DXYN
       // Sprites stored in memory at location in index register (I), maximum 8bits wide. Wraps around the screen.
       // If when drawn, clears a pixel, register VF is set to 1 otherwise it is zero.
