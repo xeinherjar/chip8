@@ -4,7 +4,6 @@ var chip8 = chip8 || {};
 
 // ROM
 var romBuffer;
-    //chip8.rom;
 var romLoader = new XMLHttpRequest();
 romLoader.onload = function(e) {
   romBuffer = romLoader.response;
@@ -14,8 +13,11 @@ romLoader.onload = function(e) {
   chip8.loadGame();
   console.log("ready");
 };
-//romLoader.open('GET', 'roms/INVADERS', true);
-romLoader.open('GET', 'roms/Breakout.ch8', true);
+romLoader.open('GET', 'roms/INVADERS', true);
+//romLoader.open('GET', 'roms/BRIX', true);
+//romLoader.open('GET', 'roms/PONG', true);
+//romLoader.open('GET', 'roms/TETRIS', true);
+//romLoader.open('GET', 'roms/UFO', true);
 romLoader.responseType = 'arraybuffer';
 romLoader.send(null);
 
@@ -45,8 +47,8 @@ var stackBuffer = new ArrayBuffer(32);
     chip8.sp    = 0;
 
 // Timers
-var soundTimer = 0,
-    delayTimer = 0;
+chip8.soundTimer = 0;
+chip8.delayTimer = 0;
 
 // Resolution 64x32 (2048 pixels) will display at: 320x160
 var gfxBuffer = new ArrayBuffer(2048);
@@ -54,9 +56,7 @@ var gfxBuffer = new ArrayBuffer(2048);
     drawFlag = false;
 
 // Keypad 0x0-0xF (16)
-var kpBuffer = new ArrayBuffer(0xF);
-    chip8.kp = new Uint8Array(kpBuffer);
-    chip8.keydown = 99;
+chip8.keydown = 99;
 
 // Font Set
 var fontSet = [
@@ -154,7 +154,7 @@ chip8.opCycle = function() {
       x   = (chip8.opcode & 0x0F00) >> 8,
       y   = (chip8.opcode & 0x00F0) >> 4;
 
-  //console.log(chip8.opcode.toString(16));
+  console.log(chip8.opcode.toString(16));
   // Execute
   // JSPerf says swtich is faster than a jump table...
   switch(chip8.opH) {
@@ -170,8 +170,8 @@ chip8.opCycle = function() {
           break;
         case 0x00EE: // 00EE
           // Returns from a subroutine
-          chip8.sp -= 1;
           chip8.pc = chip8.stack[chip8.sp];
+          chip8.sp -= 1;
           break;
         default:
           console.log("Unknown op: ", chip8.opcode.toString(16));
@@ -183,8 +183,8 @@ chip8.opCycle = function() {
       break;
     case 0x2000: // 2NNN
       // Calls subroutine at NNN
-      chip8.stack[chip8.sp] = chip8.pc;
       chip8.sp += 1;
+      chip8.stack[chip8.sp] = chip8.pc;
       chip8.pc = nnn;
       break;
     case 0x3000: // 3XNN
@@ -209,7 +209,7 @@ chip8.opCycle = function() {
       break;
     case 0x7000: // 7XNN
       // Adds NN to VX
-      chip8.v[x] += nn;
+      chip8.v[x] = (chip8.v[x] + nn) & 0xFF;
       chip8.pc += 2;
       break;
     case 0x8000:
@@ -233,12 +233,12 @@ chip8.opCycle = function() {
           // Sets VX to VX xor VY
           chip8.v[x] ^= chip8.v[y];
           chip8.pc += 2;
-          break; 
+          break;
         case 0x0004: // 8XY4
-          // Adds VY to VX 
+          // Adds VY to VX
           // VF is set to 1 when there's a carry, and to 0 when there isn't
           var tmp = chip8.v[x] + chip8.v[y];
-          // If more than 255 then carry
+          // If more than 255 then set carry flag
           chip8.v[0xF] = tmp > 255 ? 1 : 0;
           // bitwise and to clamp value between 0 - 255
           chip8.v[x] = tmp & 0xFF;
@@ -247,8 +247,8 @@ chip8.opCycle = function() {
         case 0x0005: // 8XY5
           // VY is subtracted from VX
           // VF is set to 0 when there's a borrow, and 1 when there isn't
-          chip8.v[0xF] = chip8.v[x] > chip8.v[y] ? 1 : 0; 
-          chip8.v[x] -= chip8.v[y];
+          chip8.v[0xF] = chip8.v[x] > chip8.v[y] ? 1 : 0;
+          chip8.v[x] = (chip8.v[x] - chip8.v[y]) & 0xFF;
           chip8.pc += 2;
           break;
         case 0x0006: // 8XY6
@@ -263,10 +263,10 @@ chip8.opCycle = function() {
           // Sets VX to VY minus VX
           // VF is set to 0 when there's a borrow, and 1 when there isn't
           chip8.v[0xF] = chip8.v[y] > chip8.v[x] ? 1 : 0;
-          chip8.v[x] = chip8.v[y] - chip8.v[x];
+          chip8.v[x] = (chip8.v[y] - chip8.v[x]) & 0xFF;
           chip8.pc += 2;
           break;
-        case 0x0008: // 8XYE
+        case 0x000E: // 8XYE
           // Shifts VX left by one
           // VF is set to the value of the most significant bit of VX before the shift
           chip8.v[0xF] = chip8.v[x] >> 7;
@@ -290,7 +290,7 @@ chip8.opCycle = function() {
       break;
     case 0xB000: // BNNN
       // Jumps to the address NNN plus V0
-      chip8.pc = nnn + chip8.v[0];
+      chip8.pc = nnn + chip8.v[0x0];
       break;
     case 0xC000: // CXNN
       // Sets VX to a random number, masked by NN
@@ -303,11 +303,8 @@ chip8.opCycle = function() {
       // Sprites stored in memory at location in index register (I), maximum 8bits wide. Wraps around the screen.
       // If when drawn, clears a pixel, register VF is set to 1 otherwise it is zero.
       // All drawing is XOR drawing (i.e. it toggles the screen pixels)
-      var x = (chip8.opcode & 0x0F00) >> 8;
-          x = chip8.v[x];
-      var y = (chip8.opcode & 0x00F0) >> 4;
-          y = chip8.v[y];
-      var n = chip8.opcode & 0x000F,
+      var vx = chip8.v[x],
+          vy = chip8.v[y],
           pixel;
 
       // Reset collision flag
@@ -323,12 +320,12 @@ chip8.opCycle = function() {
         for (xi = 0; xi < pixel.length; xi++) {
           p = pixel[xi] === "1" ? 1 : 0;
           // Where to draw the pixel.
-          loc = ((y + yi) * 64) + x + xi;
+          loc = ((vy + yi) * 64) + vx + xi;
 
           // Check for collision
           if (p === 1 && chip8.gfx[loc] === 1) { chip8.v[0xF] = 1; }
           // XOR draw;
-          chip8.gfx[loc] = p;
+          chip8.gfx[loc] ^= p;
         }
       }
 
@@ -360,6 +357,7 @@ chip8.opCycle = function() {
           break;
         case 0x000A: // FX0A
           // A key press is awaited, and then stored in VX
+          // Everything stops until this happens.
           if (chip8.keydown !== undefined && chip8.keydown !== 99) {
             chip8.v[x] = chip8.keydown;
             chip8.pc += 2;
@@ -386,33 +384,33 @@ chip8.opCycle = function() {
           // Fonts are stored in ram starting at 0x50.  Sinces fonts are 5 bytes long
           // we multiply the value by 5.  0x50 + (0 * 0), 0x50 + (1 * 5)...
           var address = 0x50 + (chip8.v[x] * 5);
-          chip8.I = chip8.ram[chip8.v[x] * 5];
+          chip8.I = chip8.ram[address];
           chip8.pc += 2;
           break;
         case 0x0033: // FX33
-          // Stores the Binary-coded decimal representation of VX, 
-          // with the most significant of three digits at the address in I, 
-          // the middle digit at I plus 1, 
-          // and the least significant digit at I plus 2. 
-          // (In other words, take the decimal representation of VX, 
-          // place the hundreds digit in memory at location in I, 
+          // Stores the Binary-coded decimal representation of VX,
+          // with the most significant of three digits at the address in I,
+          // the middle digit at I plus 1,
+          // and the least significant digit at I plus 2.
+          // (In other words, take the decimal representation of VX,
+          // place the hundreds digit in memory at location in I,
           // the tens digit at location I+1, and the ones digit at location I+2.)
           var bcd = chip8.v[x];
-          chip8.ram[chip8.I    ] = (bcd / 100) % 10;
-          chip8.ram[chip8.I + 1] = (bcd / 10 ) % 10;
-          chip8.ram[chip8.I + 2] = (bcd / 1  ) % 10;
+          chip8.ram[chip8.I    ] = ((bcd / 100) % 10) | 0;
+          chip8.ram[chip8.I + 1] = ((bcd / 10 ) % 10) | 0;
+          chip8.ram[chip8.I + 2] = ((bcd / 1  ) % 10) | 0;
           chip8.pc += 2;
           break;
         case 0x0055: // FX55
           // Stores V0 to VX in memory starting at address I
-          for (var i = 0; i <= x; i++) {
+          for (i = 0; i <= x; i++) {
             chip8.ram[chip8.I + i] = chip8.v[i];
           }
           chip8.pc += 2;
           break;
         case 0x0065: // FX65
           // Fills V0 to VX with values from memory starting at address I
-          for (var i = 0; i <= x; i++) {
+          for (i = 0; i <= x; i++) {
             chip8.v[i] = chip8.ram[chip8.I + i];
           }
           chip8.pc += 2;
@@ -459,6 +457,11 @@ chip8.opCycle = function() {
     if (chip8.soundTimer !== 0) { chip8.soundTimer -= 1; }
     if (chip8.delayTimer !== 0) { chip8.delayTimer -= 1; }
     animationID = requestAnimationFrame(chip8.loop);
+  };
+
+  chip8.start = function() {
+   requestAnimationFrame(chip8.loop);
+   // setInterval(chip8.loop, 13);
   };
 
   chip8.stop = function() {
