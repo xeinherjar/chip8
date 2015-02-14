@@ -101,7 +101,7 @@ chip8.init = function() {
   // Clear display
   for (i = 0; i < chip8.gfx.length; i++) { chip8.gfx[i] = 0; }
   
-  document.getElementById('chip').addEventListener('keypress', getKeys);
+  document.getElementById('chip').addEventListener('keypress', function(e) { chip8.keydown = e.which; });
   document.getElementById('chip').addEventListener('keyup', function() { chip8.keydown = 0; });
 
 };
@@ -173,6 +173,11 @@ chip8.opCycle = function() {
       if (chip8.v[x] === nn) { chip8.pc += 2; }
       chip8.pc += 2;
       break;
+   case 0x4000: // 4XNN
+      // Skips the next instruction if VX doesn't equal NN
+      if (chip8.v[x] !== nn) { chip8.pc += 2; }
+      chip8.pc += 2;
+      break;
    case 0x6000: // 6XNN
       // Sets VX to NN
       chip8.v[x] = nn;
@@ -188,6 +193,11 @@ chip8.opCycle = function() {
         case 0x0000: // 8XY0
           // Sets VX to the value of VY
           chip8.v[x] = chip8.v[y];
+          chip8.pc += 2;
+          break;
+        case 0x0002: // 8XY2
+          // Sets VX to VX and VY
+          chip8.v[x] &= chip8.v[y];
           chip8.pc += 2;
           break;
         default:
@@ -296,19 +306,14 @@ chip8.opCycle = function() {
 
     drawFlag = false;
   };
+  
 
-  function getKeys(e) {
-    if (e.which) { 
-      chip8.keydown = e.which;
-    } else {
-      chip8.keydown = 0;
-    }
-
-  }
   var animationID;
   chip8.loop = function() {
     chip8.opCycle();
     if (drawFlag === true) { chip8.render(); }
+    if (chip8.soundTimer !== 0) { chip8.soundTimer -= 1; }
+    if (chip8.delayTimer !== 0) { chip8.delayTimer -= 1; }
     animationID = requestAnimationFrame(chip8.loop);
   };
 
