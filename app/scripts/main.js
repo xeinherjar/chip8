@@ -13,8 +13,8 @@ romLoader.onload = function(e) {
   chip8.loadGame();
   console.log("ready");
 };
-romLoader.open('GET', 'roms/INVADERS', true);
-//romLoader.open('GET', 'roms/BRIX', true);
+//romLoader.open('GET', 'roms/INVADERS', true);
+romLoader.open('GET', 'roms/BRIX', true);
 //romLoader.open('GET', 'roms/PONG', true);
 //romLoader.open('GET', 'roms/TETRIS', true);
 //romLoader.open('GET', 'roms/UFO', true);
@@ -53,7 +53,7 @@ chip8.delayTimer = 0;
 // Resolution 64x32 (2048 pixels) will display at: 320x160
 var gfxBuffer = new ArrayBuffer(2048);
     chip8.gfx = new Uint8Array(gfxBuffer);
-    drawFlag = false;
+var drawFlag = false;
 
 // Keypad 0x0-0xF (16)
 chip8.keydown = 99;
@@ -119,8 +119,8 @@ var keys = {
 };
 
 chip8.loadGame = function() {
-  // Font Set should live at 0x50 (80)
   var i = 0;
+  // Font Set should live at 0x50 (80)
   for (i = 0; i < fontSet.length; i++) {
     chip8.ram[0x50 + i] = fontSet[i];
   }
@@ -170,8 +170,9 @@ chip8.opCycle = function() {
           break;
         case 0x00EE: // 00EE
           // Returns from a subroutine
-          chip8.pc = chip8.stack[chip8.sp];
           chip8.sp -= 1;
+          chip8.pc = chip8.stack[chip8.sp];
+          chip8.pc += 2;
           break;
         default:
           console.log("Unknown op: ", chip8.opcode.toString(16));
@@ -183,8 +184,8 @@ chip8.opCycle = function() {
       break;
     case 0x2000: // 2NNN
       // Calls subroutine at NNN
-      chip8.sp += 1;
       chip8.stack[chip8.sp] = chip8.pc;
+      chip8.sp += 1;
       chip8.pc = nnn;
       break;
     case 0x3000: // 3XNN
@@ -320,7 +321,7 @@ chip8.opCycle = function() {
         for (xi = 0; xi < pixel.length; xi++) {
           p = pixel[xi] === "1" ? 1 : 0;
           // Where to draw the pixel.
-          loc = ((vy + yi) * 64) + vx + xi;
+          loc = ((vy + yi) * 64) + ((vx + xi) % 64);
 
           // Check for collision
           if (p === 1 && chip8.gfx[loc] === 1) { chip8.v[0xF] = 1; }

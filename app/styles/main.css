@@ -27,3 +27,7 @@ body {
   color: #000;
   padding: 0.2em 0;
 }
+
+#screen {
+  border: 1px solid black;
+}
