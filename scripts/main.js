@@ -12,7 +12,8 @@ chip8.romLoader.onload = function(e) {
   chip8.init();
   chip8.loadGame();
   console.log("ready");
-  chip8.start();
+  
+  requestAnimationFrame(chip8.loop);
 };
 // SYSTEM
 
@@ -147,7 +148,7 @@ chip8.opCycle = function() {
       x   = (chip8.opcode & 0x0F00) >> 8,
       y   = (chip8.opcode & 0x00F0) >> 4;
 
-  console.log(chip8.opcode.toString(16));
+  //console.log(chip8.opcode.toString(16));
   // Execute
   // JSPerf says swtich is faster than a jump table...
   switch(chip8.opH) {
@@ -455,7 +456,6 @@ chip8.opCycle = function() {
 
   chip8.start = function() {
    requestAnimationFrame(chip8.loop);
-   // setInterval(chip8.loop, 13);
   };
 
   chip8.stop = function() {
