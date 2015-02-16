@@ -13,8 +13,8 @@ chip8.romLoader.onload = function(e) {
   chip8.init();
   chip8.loadGame();
   console.log("ready");
-  if (animationID !== undefined) { cancelAnimationFrame(animationID); }
-  requestAnimationFrame(chip8.loop);
+  
+  chip8.start();
 };
 // SYSTEM
 
@@ -115,6 +115,9 @@ var keys = {
 
 chip8.loadGame = function() {
   var i = 0;
+  for (i = 0; i < fontSet.length; i++) {
+    chip8.ram[i] = fontSet[i];
+  }
   // Font Set should live at 0x50 (80)
   for (i = 0; i < fontSet.length; i++) {
     chip8.ram[0x50 + i] = fontSet[i];
@@ -378,10 +381,7 @@ chip8.opCycle = function() {
         case 0x0029: // FX29
           // Sets I to the location of the sprite for the character in VX.
           // Characters 0-F (in hexadecimal) are represented by a 4x5 font
-          // Fonts are stored in ram starting at 0x50.  Sinces fonts are 5 bytes long
-          // we multiply the value by 5.  0x50 + (0 * 0), 0x50 + (1 * 5)...
-          var address = 0x50 + (chip8.v[x] * 5);
-          chip8.I = chip8.ram[address];
+          chip8.I = chip8.v[x] * 5;
           chip8.pc += 2;
           break;
         case 0x0033: // FX33
@@ -447,21 +447,24 @@ chip8.opCycle = function() {
   };
 
 
-  var animationID;
   chip8.loop = function() {
-    animationID = requestAnimationFrame(chip8.loop);
+    if (chip8.soundTimer !== 0) { 
+      setTimeout(chip8.soundTimer--, 1000 / 60);
+    }
+    if (chip8.delayTimer !== 0) { 
+      setTimeout(chip8.delayTimer--, 1000 / 60);
+    }
     chip8.opCycle();
-    if (chip8.soundTimer !== 0) { chip8.soundTimer -= 1; }
-    if (chip8.delayTimer !== 0) { chip8.delayTimer -= 1; }
     if (drawFlag === true) { chip8.render(); }
   };
 
+  var IntervalID;
   chip8.start = function() {
-   requestAnimationFrame(chip8.loop);
+    IntervalID = setInterval(chip8.loop, 1000/600);
   };
 
   chip8.stop = function() {
-    cancelAnimationFrame(animationID);
+    clearInterval(IntervalID);
   };
 
   window.chip8 = chip8;
