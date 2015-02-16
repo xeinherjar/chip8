@@ -1,4 +1,5 @@
 (function() {
+'use strict';
 
 var chip8 = chip8 || {};
 
@@ -307,7 +308,8 @@ chip8.opCycle = function() {
 
       var yi,
           xi,
-          p;
+          p,
+          loc;
       for (yi = 0; yi < n; yi++) {
         pixel = chip8.ram[chip8.I + yi];
         // convert to pixel data, we need 8 bits but JavaScript will only print what is needed.
