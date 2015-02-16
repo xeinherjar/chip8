@@ -12,7 +12,7 @@ chip8.romLoader.onload = function(e) {
   chip8.init();
   chip8.loadGame();
   console.log("ready");
-  
+  if (animationID !== undefined) { cancelAnimationFrame(animationID); }
   requestAnimationFrame(chip8.loop);
 };
 // SYSTEM
@@ -447,11 +447,11 @@ chip8.opCycle = function() {
 
   var animationID;
   chip8.loop = function() {
+    animationID = requestAnimationFrame(chip8.loop);
     chip8.opCycle();
-    if (drawFlag === true) { chip8.render(); }
     if (chip8.soundTimer !== 0) { chip8.soundTimer -= 1; }
     if (chip8.delayTimer !== 0) { chip8.delayTimer -= 1; }
-    animationID = requestAnimationFrame(chip8.loop);
+    if (drawFlag === true) { chip8.render(); }
   };
 
   chip8.start = function() {
