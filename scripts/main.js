@@ -4,23 +4,16 @@ var chip8 = chip8 || {};
 
 // ROM
 var romBuffer;
-var romLoader = new XMLHttpRequest();
-romLoader.onload = function(e) {
-  romBuffer = romLoader.response;
+chip8.romLoader = new XMLHttpRequest();
+chip8.romLoader.onload = function(e) {
+  romBuffer = chip8.romLoader.response;
   chip8.rom = new Uint8Array(romBuffer);
 
   chip8.init();
   chip8.loadGame();
   console.log("ready");
+  chip8.start();
 };
-//romLoader.open('GET', 'roms/INVADERS', true);
-romLoader.open('GET', 'roms/BRIX', true);
-//romLoader.open('GET', 'roms/PONG', true);
-//romLoader.open('GET', 'roms/TETRIS', true);
-//romLoader.open('GET', 'roms/UFO', true);
-romLoader.responseType = 'arraybuffer';
-romLoader.send(null);
-
 // SYSTEM
 
 
@@ -474,3 +467,12 @@ chip8.opCycle = function() {
 }());
 
 
+
+var load = $('#rom-load');
+load.on('click', function(e) {
+  var r = $('select').val();
+  chip8.romLoader.open('GET', 'roms/' + r , true);
+  chip8.romLoader.responseType = 'arraybuffer';
+  chip8.romLoader.send(null);
+
+});
