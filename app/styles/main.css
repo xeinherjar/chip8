@@ -31,3 +31,7 @@ body {
 #screen {
   border: 1px solid black;
 }
+
+select {
+  width: 320px;
+}
