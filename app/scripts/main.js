@@ -13,7 +13,7 @@ chip8.romLoader.onload = function(e) {
   chip8.init();
   chip8.loadGame();
   console.log("ready");
-  
+
   chip8.start();
 };
 // SYSTEM
@@ -448,11 +448,13 @@ chip8.opCycle = function() {
 
 
   chip8.loop = function() {
-    if (chip8.soundTimer !== 0) { 
-      setTimeout(chip8.soundTimer--, 1000 / 60);
+    if (chip8.soundTimer !== 0) {
+      //setTimeout(chip8.soundTimer--, 1000 / 60);
+      chip8.soundTimer--;
     }
-    if (chip8.delayTimer !== 0) { 
-      setTimeout(chip8.delayTimer--, 1000 / 60);
+    if (chip8.delayTimer !== 0) {
+      //setTimeout(chip8.delayTimer--, 1000 / 60);
+      chip8.delayTimer--;
     }
     chip8.opCycle();
     if (drawFlag === true) { chip8.render(); }
@@ -475,6 +477,8 @@ chip8.opCycle = function() {
 
 var load = $('#rom-load');
 load.on('click', function(e) {
+  // If already running, cancel animationFrames
+  chip8.stop();
   var r = $('select').val();
   chip8.romLoader.open('GET', 'roms/' + r , true);
   chip8.romLoader.responseType = 'arraybuffer';
