@@ -246,7 +246,7 @@ chip8.opCycle = function() {
         case 0x0005: // 8XY5
           // VY is subtracted from VX
           // VF is set to 0 when there's a borrow, and 1 when there isn't
-          chip8.v[0xF] = chip8.v[x] > chip8.v[y] ? 1 : 0;
+          chip8.v[0xF] = chip8.v[x] >= chip8.v[y] ? 1 : 0;
           chip8.v[x] = (chip8.v[x] - chip8.v[y]) & 0xFF;
           chip8.pc += 2;
           break;
@@ -261,7 +261,7 @@ chip8.opCycle = function() {
         case 0x0007: // 8XY7
           // Sets VX to VY minus VX
           // VF is set to 0 when there's a borrow, and 1 when there isn't
-          chip8.v[0xF] = chip8.v[y] > chip8.v[x] ? 1 : 0;
+          chip8.v[0xF] = chip8.v[y] >= chip8.v[x] ? 1 : 0;
           chip8.v[x] = (chip8.v[y] - chip8.v[x]) & 0xFF;
           chip8.pc += 2;
           break;
@@ -299,7 +299,8 @@ chip8.opCycle = function() {
       chip8.pc += 2;
       break;
     case 0xD000: // DXYN
-      // Sprites stored in memory at location in index register (I), maximum 8bits wide. Wraps around the screen.
+      // Sprites stored in memory at location in index register (I), maximum 8bits wide.
+      // Wraps around the screen.
       // If when drawn, clears a pixel, register VF is set to 1 otherwise it is zero.
       // All drawing is XOR drawing (i.e. it toggles the screen pixels)
       var vx = chip8.v[x],
@@ -430,6 +431,7 @@ chip8.opCycle = function() {
   // Resolution 64x32 (2048 pixels) will display at: 320x160
   var ctx = document.getElementById('screen').getContext('2d');
   chip8.render = function() {
+    //requestAnimationFrame(chip8.render);
     var w  = 320,
         h  = 160,
         xp = 32,
@@ -448,6 +450,7 @@ chip8.opCycle = function() {
 
 
   chip8.loop = function() {
+    /*
     if (chip8.soundTimer !== 0) {
       //setTimeout(chip8.soundTimer--, 1000 / 60);
       chip8.soundTimer--;
@@ -456,13 +459,37 @@ chip8.opCycle = function() {
       //setTimeout(chip8.delayTimer--, 1000 / 60);
       chip8.delayTimer--;
     }
+    */
+    // if sound or delay timer is not 0
+    /*
+    if (chip8.soundTimer || chip8.delayTimer) {
+      setTimeout(function() {
+        if (chip8.soundTimer) {
+          chip8.soundTimer--;
+        }
+        if (chip8.delayTimer) {
+          chip8.delayTimer--;
+        }
+      }, 1000  / 60);
+    }
+    */
+
     chip8.opCycle();
-    if (drawFlag === true) { chip8.render(); }
+    //if (drawFlag === true) { chip8.render(); }
   };
 
   var IntervalID;
   chip8.start = function() {
-    IntervalID = setInterval(chip8.loop, 1000/600);
+    IntervalID = setInterval(chip8.loop, 1000 / 600);
+      setInterval(function() {
+        chip8.render();
+        if (chip8.soundTimer) {
+          chip8.soundTimer--;
+        }
+        if (chip8.delayTimer) {
+          chip8.delayTimer--;
+        }
+      }, 1000  / 60);
   };
 
   chip8.stop = function() {
