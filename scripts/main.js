@@ -48,9 +48,10 @@ chip8.delayTimer = 0;
 // Resolution 64x32 (2048 pixels) will display at: 320x160
 var gfxBuffer = new ArrayBuffer(2048);
     chip8.gfx = new Uint8Array(gfxBuffer);
-var drawFlag = false;
 
 // Keypad 0x0-0xF (16)
+// 99 chosen as sentinal value since real
+// values can obly be 0 - 15
 chip8.keydown = 99;
 
 // Font Set
@@ -135,15 +136,17 @@ chip8.opcode = 0;
 chip8.opH = 0;
 // opcode low bit
 chip8.opL = 0;
-chip8.opCycle = function() {
+chip8.step = function() {
   // Fetch
   // Opcodes are two bytes, shift left 8 bits, OR in next byte.
   chip8.opcode = (chip8.ram[chip8.pc] << 8) | chip8.ram[chip8.pc + 1];
 
   // Decode
   // Take first four bits by masking.
+  // H is high bits
   chip8.opH = chip8.opcode & 0xF000;
   // Take the last four bits by masking.
+  // L is low bits
   chip8.opL = chip8.opcode & 0x000F;
 
   var n   = chip8.opcode & 0x000F,
@@ -152,7 +155,6 @@ chip8.opCycle = function() {
       x   = (chip8.opcode & 0x0F00) >> 8,
       y   = (chip8.opcode & 0x00F0) >> 4;
 
-  //console.log(chip8.opcode.toString(16));
   // Execute
   // JSPerf says swtich is faster than a jump table...
   switch(chip8.opH) {
@@ -163,7 +165,6 @@ chip8.opCycle = function() {
           for (var i = 0; i < chip8.gfx.length; i++) {
             chip8.gfx[i] = 0;
           }
-          drawFlag = true;
           chip8.pc += 2;
           break;
         case 0x00EE: // 00EE
@@ -246,7 +247,7 @@ chip8.opCycle = function() {
         case 0x0005: // 8XY5
           // VY is subtracted from VX
           // VF is set to 0 when there's a borrow, and 1 when there isn't
-          chip8.v[0xF] = chip8.v[x] > chip8.v[y] ? 1 : 0;
+          chip8.v[0xF] = chip8.v[x] >= chip8.v[y] ? 1 : 0;
           chip8.v[x] = (chip8.v[x] - chip8.v[y]) & 0xFF;
           chip8.pc += 2;
           break;
@@ -261,7 +262,7 @@ chip8.opCycle = function() {
         case 0x0007: // 8XY7
           // Sets VX to VY minus VX
           // VF is set to 0 when there's a borrow, and 1 when there isn't
-          chip8.v[0xF] = chip8.v[y] > chip8.v[x] ? 1 : 0;
+          chip8.v[0xF] = chip8.v[y] >= chip8.v[x] ? 1 : 0;
           chip8.v[x] = (chip8.v[y] - chip8.v[x]) & 0xFF;
           chip8.pc += 2;
           break;
@@ -299,7 +300,8 @@ chip8.opCycle = function() {
       chip8.pc += 2;
       break;
     case 0xD000: // DXYN
-      // Sprites stored in memory at location in index register (I), maximum 8bits wide. Wraps around the screen.
+      // Sprites stored in memory at location in index register (I), maximum 8bits wide.
+      // Wraps around the screen.
       // If when drawn, clears a pixel, register VF is set to 1 otherwise it is zero.
       // All drawing is XOR drawing (i.e. it toggles the screen pixels)
       var vx = chip8.v[x],
@@ -329,7 +331,6 @@ chip8.opCycle = function() {
         }
       }
 
-      drawFlag = true;
       chip8.pc += 2;
       break;
    case 0xE000:
@@ -443,30 +444,34 @@ chip8.opCycle = function() {
       if (chip8.gfx[i] === 1) { ctx.fillRect(x * 5, y * 5, 5, 5); }
     }
 
-    drawFlag = false;
+    requestAnimationFrame(chip8.render);
   };
 
 
-  chip8.loop = function() {
-    if (chip8.soundTimer !== 0) {
-      //setTimeout(chip8.soundTimer--, 1000 / 60);
-      chip8.soundTimer--;
-    }
-    if (chip8.delayTimer !== 0) {
-      //setTimeout(chip8.delayTimer--, 1000 / 60);
-      chip8.delayTimer--;
-    }
-    chip8.opCycle();
-    if (drawFlag === true) { chip8.render(); }
-  };
-
-  var IntervalID;
+  var runId;
+  var timerId;
   chip8.start = function() {
-    IntervalID = setInterval(chip8.loop, 1000/600);
+    // The clock speed isn't documented anywhere
+    // nor could I find the number of ops per second it should run
+    // Games appear to run at a decent speed
+    runId = setInterval(chip8.step, 1000 / 600);
+    // At best the consensus is that the timers
+    // should run at 60hz
+    timerId = setInterval(function() {
+        if (chip8.soundTimer) {
+          chip8.soundTimer--;
+        }
+        if (chip8.delayTimer) {
+          chip8.delayTimer--;
+        }
+      }, 1000  / 60);
+
+    requestAnimationFrame(chip8.render);
   };
 
   chip8.stop = function() {
-    clearInterval(IntervalID);
+    clearInterval(runId);
+    clearInterval(timerId);
   };
 
   window.chip8 = chip8;
@@ -477,7 +482,7 @@ chip8.opCycle = function() {
 
 var load = $('#rom-load');
 load.on('click', function(e) {
-  // If already running, cancel animationFrames
+  // If already running, cancel Intervals
   chip8.stop();
   var r = $('select').val();
   chip8.romLoader.open('GET', 'roms/' + r , true);
